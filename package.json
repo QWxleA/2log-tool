@@ -1,0 +1,20 @@
+{
+  "name": "2log-tool",
+  "version": "1.0.0",
+  "description": "Daily note logging tool",
+  "main": "2log.js",
+  "bin": {
+    "2log": "./2log.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node 2log.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

@@ -1,0 +1,49 @@
+Here's a comprehensive Node.js script that creates the 2log command-line tool you requested. The script will:
+
+Create timestamped entries: Formats entries as - HH:mm Your message
+Handle daily notes: Creates daily notes with YYYY-MM-DD.md format
+Find the correct position: Locates the ## Today header and appends entries as the last item under it
+Create missing files: If today's daily note doesn't exist, it creates one with a basic template
+
+Setup Instructions:
+
+Save the script: Save it as 2log.ts (or 2log.js if you prefer JavaScript)
+Install dependencies (if using TypeScript):
+```bash
+npm install -g typescript @types/node
+```
+Compile (if TypeScript):
+```bash
+tsc 2log.ts
+```
+Make it executable:
+```bash
+chmod +x 2log.js
+```
+Create a global command (optional but recommended):
+```bash
+# Create a symlink in your PATH
+sudo ln -s /path/to/your/2log.js /usr/local/bin/2log
+```
+
+Usage Examples:
+```bash
+# Basic usage
+2log "Had a productive morning call"
+
+# Multi-word entries
+2log "Meeting with Sarah went well - discussed project timeline"
+
+# The script will create entries like:
+# - 14:30 Had a productive morning call
+# - 15:45 Meeting with Sarah went well - discussed project timeline
+```
+Key Features:
+
+- Automatic file creation: Creates daily notes if they don't exist
+- Smart positioning: Always adds entries as the last item under ## Today
+- Error handling: Provides clear error messages if the journal directory doesn't exist
+- Timestamp formatting: Uses 24-hour HH:mm format
+- Markdown compatible: Generates proper markdown bullet points for Obsidian
+
+The script will create daily notes in the format 2025-06-04.md in your specified journal directory. If the ## Today header doesn't exist in an existing file, it will throw an error to prevent corruption of your existing notes.
