@@ -98,18 +98,20 @@ A TypeScript command-line tool that appends timestamped log entries to your dail
 
 Entries are added in the format:
 ```markdown
-- HH:mm Your message here
+- **HH:mm** Your message here
 ```
 
 For example:
 ```markdown
 ## Today
 
-- 09:30 Morning standup meeting
-- 11:45 Had a productive morning call
-- 14:15 Meeting with Sarah - discussed project timeline
-- 16:45 Finished reading chapter 3
+- **09:30** Morning standup meeting
+- **11:45** Had a productive morning call
+- **14:15** Meeting with Sarah - discussed project timeline
+- **16:45** Finished reading chapter 3
 ```
+
+The bold timestamps make it easy to scan through your daily entries in Obsidian.
 
 ### Chronological Sorting
 
@@ -312,9 +314,10 @@ This tool is designed to work perfectly with self-anthropology practices as desc
 2log -l
 
 # If entries aren't parsing correctly, check the format:
-# ✅ Correct: - 14:30 Meeting notes
-# ❌ Wrong:   -14:30 Meeting notes (missing space)
-# ❌ Wrong:   - 2:30 Meeting notes (should be 02:30)
+# ✅ Correct: - **14:30** Meeting notes
+# ✅ Legacy:  - 14:30 Meeting notes (still supported)
+# ❌ Wrong:   -**14:30** Meeting notes (missing space)
+# ❌ Wrong:   - **2:30** Meeting notes (should be **02:30**)
 ```
 
 **Manual file inspection:**
@@ -324,6 +327,21 @@ cat $HOME/Documents/ThirdTime/Journal/$(date +%Y-%m-%d).md
 
 # Check for invisible characters or formatting issues
 hexdump -C $HOME/Documents/ThirdTime/Journal/$(date +%Y-%m-%d).md | head
+```
+
+**Entry format compatibility:**
+The tool now supports both bold and plain timestamp formats for backward compatibility:
+```markdown
+# ✅ Current format (bold timestamps):
+- **14:30** Meeting notes
+
+# ✅ Legacy format (still supported):
+- 14:30 Meeting notes
+
+# ❌ Wrong formats:
+- **14:30 Meeting notes (missing closing **)
+-**14:30** Meeting notes (missing space after -)
+- 14:30Meeting notes (missing space after time)
 ```
 
 ### Development Tips

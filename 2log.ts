@@ -101,9 +101,11 @@ function formatTime(timeString: string): string {
 
 /**
  * Parses a log entry line to extract time and message
+ * Supports both bold (**HH:mm**) and plain (HH:mm) timestamp formats
  */
 function parseLogEntry(line: string): LogEntry | null {
-  const logEntryRegex = /^-\s+(\d{1,2}:\d{2})\s+(.+)$/;
+  // Support both bold and plain timestamp formats for backward compatibility
+  const logEntryRegex = /^-\s+(?:\*\*)?(\d{1,2}:\d{2})(?:\*\*)?\s+(.+)$/;
   const match = line.match(logEntryRegex);
   
   if (match) {
@@ -349,7 +351,7 @@ function addLogEntry(logMessage: string, customTime?: string, config: LoggerConf
       timestamp = getCurrentTime();
     }
     
-    const logEntry = `- ${timestamp} ${logMessage}`;
+    const logEntry = `- **${timestamp}** ${logMessage}`;
     
     let content: string;
     let isNewFile = false;
