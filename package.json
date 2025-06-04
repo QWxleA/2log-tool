@@ -1,14 +1,16 @@
 {
   "name": "2log-tool",
   "version": "1.0.0",
-  "description": "Daily note logging tool",
+  "description": "Daily note logging tool for Obsidian",
   "main": "2log.js",
   "bin": {
     "2log": "./2log.js"
   },
   "scripts": {
     "build": "tsc",
-    "start": "node 2log.js"
+    "dev": "tsc --watch",
+    "start": "node 2log.js",
+    "build-and-link": "npm run build && chmod +x 2log.js"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -16,5 +18,8 @@
   },
   "engines": {
     "node": ">=14.0.0"
-  }
+  },
+  "keywords": ["obsidian", "journaling", "logging", "markdown"],
+  "author": "Alex Poslavsky",
+  "license": "MIT"
 }

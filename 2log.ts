@@ -3,7 +3,39 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const JOURNAL_DIR = '/Users/qwxlea/Documents/ThirdTime/Journal';
+// Configuration interface for future extensibility
+interface LoggerConfig {
+  journalDir: string;
+  dateFormat?: string;
+  timeFormat?: string;
+  todayHeader?: string;
+}
+
+// Default configuration
+const DEFAULT_CONFIG: LoggerConfig = {
+  journalDir: process.env.HOME + '/Documents/ThirdTime/Journal',
+  dateFormat: 'YYYY-MM-DD',
+  timeFormat: 'HH:mm',
+  todayHeader: '## Today'
+};
+
+// Types for better error handling
+type LoggerError = 
+  | 'DIRECTORY_NOT_FOUND'
+  | 'HEADER_NOT_FOUND'
+  | 'FILE_WRITE_ERROR'
+  | 'INVALID_ARGUMENTS';
+
+class Logger2Error extends Error {
+  constructor(
+    public type: LoggerError,
+    message: string,
+    public originalError?: Error
+  ) {
+    super(message);
+    this.name = 'Logger2Error';
+  }
+}
 
 /**
  * Pads a number with leading zeros (alternative to padStart for older TS versions)
@@ -37,7 +69,8 @@ function getCurrentTime(): string {
  * Creates a basic daily note template if the file doesn't exist
  */
 function createDailyNoteTemplate(): string {
-  return `# ${getTodayFilename().replace('.md', '')}
+  const dateString = getTodayFilename().replace('.md', '');
+  return `# ${dateString}
 
 ## Today
 
@@ -47,20 +80,23 @@ function createDailyNoteTemplate(): string {
 /**
  * Finds the position after the "## Today" header where we should insert the new entry
  */
-function findTodayInsertPosition(content: string): number {
+function findTodayInsertPosition(content: string, headerText: string = DEFAULT_CONFIG.todayHeader!): number {
   const lines = content.split('\n');
   let todayHeaderIndex = -1;
   
-  // Find the "## Today" header
+  // Find the specified header
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim() === '## Today') {
+    if (lines[i].trim() === headerText) {
       todayHeaderIndex = i;
       break;
     }
   }
   
   if (todayHeaderIndex === -1) {
-    throw new Error('Could not find "## Today" header in the daily note');
+    throw new Logger2Error(
+      'HEADER_NOT_FOUND',
+      `Could not find "${headerText}" header in the daily note. Make sure the header exists or create it manually.`
+    );
   }
   
   // Find the next header (##) or end of file to determine where to insert
@@ -72,7 +108,7 @@ function findTodayInsertPosition(content: string): number {
     }
   }
   
-  // Find the last non-empty line under "## Today" section
+  // Find the last non-empty line under the target section
   let lastContentIndex = todayHeaderIndex;
   for (let i = todayHeaderIndex + 1; i < insertIndex; i++) {
     if (lines[i].trim() !== '') {
@@ -84,35 +120,54 @@ function findTodayInsertPosition(content: string): number {
 }
 
 /**
+ * Validates that the journal directory exists and is accessible
+ */
+function validateJournalDirectory(journalDir: string): void {
+  if (!fs.existsSync(journalDir)) {
+    throw new Logger2Error(
+      'DIRECTORY_NOT_FOUND',
+      `Journal directory does not exist: ${journalDir}\nPlease create the directory or update the JOURNAL_DIR path in the script.`
+    );
+  }
+  
+  // Check if directory is writable
+  try {
+    fs.accessSync(journalDir, fs.constants.W_OK);
+  } catch (error) {
+    throw new Logger2Error(
+      'DIRECTORY_NOT_FOUND',
+      `Journal directory is not writable: ${journalDir}`,
+      error as Error
+    );
+  }
+}
+
+/**
  * Adds a log entry to the daily note
  */
-function addLogEntry(logMessage: string): void {
+function addLogEntry(logMessage: string, config: LoggerConfig = DEFAULT_CONFIG): void {
   try {
+    validateJournalDirectory(config.journalDir);
+    
     const filename = getTodayFilename();
-    const filepath = path.join(JOURNAL_DIR, filename);
+    const filepath = path.join(config.journalDir, filename);
     const timestamp = getCurrentTime();
     const logEntry = `- ${timestamp} ${logMessage}`;
     
-    // Check if journal directory exists
-    if (!fs.existsSync(JOURNAL_DIR)) {
-      console.error(`Journal directory does not exist: ${JOURNAL_DIR}`);
-      console.error('Please create the directory or update the JOURNAL_DIR path in the script.');
-      process.exit(1);
-    }
-    
     let content: string;
+    let isNewFile = false;
     
     // Read existing file or create new one
     if (fs.existsSync(filepath)) {
       content = fs.readFileSync(filepath, 'utf-8');
     } else {
       content = createDailyNoteTemplate();
-      console.log(`Created new daily note: ${filename}`);
+      isNewFile = true;
     }
     
     // Find where to insert the log entry
     const lines = content.split('\n');
-    const insertPosition = findTodayInsertPosition(content);
+    const insertPosition = findTodayInsertPosition(content, config.todayHeader);
     
     // Insert the log entry
     lines.splice(insertPosition, 0, logEntry);
@@ -121,12 +176,49 @@ function addLogEntry(logMessage: string): void {
     const updatedContent = lines.join('\n');
     fs.writeFileSync(filepath, updatedContent, 'utf-8');
     
-    console.log(`✅ Added log entry to ${filename}: ${logEntry}`);
+    // Success feedback
+    if (isNewFile) {
+      console.log(`📄 Created new daily note: ${filename}`);
+    }
+    console.log(`✅ Added log entry: ${logEntry}`);
     
   } catch (error) {
-    console.error('❌ Error writing log entry:', error.message);
+    if (error instanceof Logger2Error) {
+      console.error(`❌ ${error.message}`);
+      if (error.type === 'HEADER_NOT_FOUND') {
+        console.error(`💡 Tip: Make sure your daily note contains a "${config.todayHeader}" header.`);
+      }
+    } else {
+      console.error('❌ Unexpected error:', (error as Error).message);
+    }
     process.exit(1);
   }
+}
+
+/**
+ * Displays help information
+ */
+function displayHelp(): void {
+  console.log(`
+2log - Daily Note Logger for Obsidian
+
+Usage:
+  2log <message>          Add a timestamped entry to today's note
+  2log --help, -h         Show this help message
+
+Examples:
+  2log "Had a productive morning call"
+  2log "Meeting with Sarah - discussed project timeline"
+  2log "Finished reading chapter 3"
+
+Configuration:
+  Journal directory: ${DEFAULT_CONFIG.journalDir}
+  Daily note format: YYYY-MM-DD.md
+  Entry format: - HH:mm <message>
+  Target header: ${DEFAULT_CONFIG.todayHeader}
+
+The tool will create a new daily note if one doesn't exist for today.
+`);
 }
 
 /**
@@ -135,15 +227,29 @@ function addLogEntry(logMessage: string): void {
 function main(): void {
   const args = process.argv.slice(2);
   
-  if (args.length === 0) {
-    console.error('Usage: 2log <message>');
-    console.error('Example: 2log "Had a great meeting with the team"');
-    process.exit(1);
+  // Handle help flags
+  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+    displayHelp();
+    process.exit(args.length === 0 ? 1 : 0);
   }
   
   const logMessage = args.join(' ');
+  
+  // Basic validation
+  if (logMessage.trim().length === 0) {
+    throw new Logger2Error(
+      'INVALID_ARGUMENTS',
+      'Log message cannot be empty'
+    );
+  }
+  
   addLogEntry(logMessage);
 }
 
 // Run the script
-main();
+if (require.main === module) {
+  main();
+}
+
+// Export for potential future use as a module
+export { addLogEntry, Logger2Error, LoggerConfig };
