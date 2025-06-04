@@ -21,39 +21,39 @@ A TypeScript command-line tool that appends timestamped log entries to your dail
 ### Setup
 
 1. **Clone or create the project directory:**
-   ```bash
-   mkdir 2log-tool
-   cd 2log-tool
-   ```
+```bash
+mkdir 2log-tool
+cd 2log-tool
+```
 
 2. **Initialize npm project:**
-   ```bash
-   npm init -y
-   ```
+```bash
+npm init -y
+```
 
 3. **Install dependencies:**
-   ```bash
-   npm install --save-dev typescript @types/node
-   ```
+```bash
+npm install --save-dev typescript @types/node
+```
 
 4. **Create configuration files:**
    
    Save the `package.json` and `tsconfig.json` from the setup artifacts, then save the main script as `2log.ts`.
 
 5. **Build the project:**
-   ```bash
-   npm run build
-   ```
+```bash
+npm run build
+```
 
 6. **Make executable:**
-   ```bash
-   chmod +x 2log.js
-   ```
+```bash
+chmod +x 2log.js
+```
 
 7. **Optional - Create global command:**
-   ```bash
-   sudo ln -s $(pwd)/2log.js /usr/local/bin/2log
-   ```
+```bash
+sudo ln -s $(pwd)/2log.js /usr/local/bin/2log
+```
 
 ## Usage
 
