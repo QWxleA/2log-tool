@@ -21,54 +21,78 @@ A TypeScript command-line tool that appends timestamped log entries to your dail
 ### Setup
 
 1. **Clone or create the project directory:**
-```bash
-mkdir 2log-tool
-cd 2log-tool
-```
+   ```bash
+   mkdir 2log-tool
+   cd 2log-tool
+   ```
 
 2. **Initialize npm project:**
-```bash
-npm init -y
-```
+   ```bash
+   npm init -y
+   ```
 
 3. **Install dependencies:**
-```bash
-npm install --save-dev typescript @types/node
-```
+   ```bash
+   npm install --save-dev typescript @types/node
+   ```
 
 4. **Create configuration files:**
    
    Save the `package.json` and `tsconfig.json` from the setup artifacts, then save the main script as `2log.ts`.
 
 5. **Build the project:**
-```bash
-npm run build
-```
+   ```bash
+   npm run build
+   ```
 
 6. **Make executable:**
-```bash
-chmod +x 2log.js
-```
+   ```bash
+   chmod +x 2log.js
+   ```
 
 7. **Optional - Create global command:**
-```bash
-sudo ln -s $(pwd)/2log.js /usr/local/bin/2log
-```
+   ```bash
+   sudo ln -s $(pwd)/2log.js /usr/local/bin/2log
+   ```
 
 ## Usage
 
 ### Basic Usage
 
 ```bash
-# Add a simple log entry
+# Add a simple log entry with current timestamp
 2log "Had a productive morning call"
 
-# Multi-word entries
-2log "Meeting with Sarah - discussed project timeline"
+# List today's entries (default when no arguments)
+2log
+2log -l
+2log --list
+
+# Add entry with custom timestamp (entries auto-sorted chronologically)
+2log -t 09:30 "Morning standup meeting"
+2log --time 14:15 "Meeting with Sarah - discussed project timeline"
+
+# Remove the last entry (undo)
+2log -u
+2log --undo
 
 # Get help
+2log -h
 2log --help
 ```
+
+### Command Line Options
+
+- **`-t, --time HH:mm`**: Override the timestamp (format: HH:mm, e.g., 09:30, 14:15)
+- **`-l, --list`**: List all log entries for today
+- **`-u, --undo`**: Remove the last log entry (chronologically last)
+- **`-h, --help`**: Display help information
+
+### Default Behavior
+
+- **No arguments**: Lists today's log entries
+- **Message only**: Adds entry with current timestamp
+- **Custom time**: Entries are automatically sorted chronologically
 
 ### Output Format
 
@@ -81,9 +105,26 @@ For example:
 ```markdown
 ## Today
 
-- 09:30 Had a productive morning call
+- 09:30 Morning standup meeting
+- 11:45 Had a productive morning call
 - 14:15 Meeting with Sarah - discussed project timeline
 - 16:45 Finished reading chapter 3
+```
+
+### Chronological Sorting
+
+All entries are automatically sorted by time when added, regardless of when you add them:
+
+```bash
+# Add entries out of order
+2log -t 14:00 "Afternoon meeting"
+2log -t 09:00 "Morning coffee"
+2log -t 11:30 "Mid-morning call"
+
+# Result is automatically sorted:
+# - 09:00 Morning coffee
+# - 11:30 Mid-morning call
+# - 14:00 Afternoon meeting
 ```
 
 ### Daily Note Structure
@@ -149,25 +190,29 @@ npm start "Test message"
 
 ## Enhanced Features
 
+### New Command Line Features
+- **Custom Timestamps**: Use `-t` or `--time` to add entries with specific times
+- **Chronological Sorting**: All entries are automatically sorted by time, regardless of input order
+- **List Functionality**: View all today's entries with `-l` or `--list` (default when no arguments)
+- **Undo Support**: Remove the last entry with `-u` or `--undo`
+- **Smart Default**: Running `2log` without arguments shows today's entries
+
 ### Type Safety Features
-- **Interfaces**: `LoggerConfig` for configuration management
-- **Custom Error Types**: `Logger2Error` with specific error categories
+- **Enhanced Interfaces**: `LoggerConfig`, `CommandArgs`, and `LogEntry` for better type safety
+- **Custom Error Types**: `Logger2Error` with specific error categories including time format validation
 - **Proper typing**: All functions have explicit return types for better IDE support
 
 ### Better Error Handling
-- **Specific error types**: Directory not found, header not found, file write errors
+- **Time Format Validation**: Ensures custom timestamps are in valid HH:mm format
+- **Specific error types**: Directory not found, header not found, file write errors, invalid time format
 - **Helpful error messages**: More descriptive feedback with suggestions
 - **Validation**: Checks directory exists and is writable before attempting operations
 
-### Extensibility
-- **Configuration interface**: Easy to add new config options
-- **Modular design**: Functions can be reused in other projects
-- **Export capability**: Can be imported as a module in other TypeScript projects
-
-### Enhanced User Experience
-- **Help command**: `2log --help` or `2log -h` shows usage information
-- **Better feedback**: Shows when new files are created
-- **Input validation**: Prevents empty messages and provides clear error messages
+### Advanced Functionality
+- **Log Entry Parsing**: Intelligent parsing of existing entries for sorting and manipulation
+- **Section Management**: Robust handling of the "## Today" section boundaries
+- **Entry Management**: Add, list, and remove entries with full chronological awareness
+- **Time Comparison**: Sophisticated time sorting that handles 24-hour format correctly
 
 ## Error Messages
 
@@ -177,6 +222,30 @@ The tool provides helpful error messages for common issues:
 - **Header not found**: Reminds you to add the `## Today` header to existing notes
 - **Permission issues**: Indicates when the directory isn't writable
 - **Invalid arguments**: Helps with correct usage syntax
+- **Invalid time format**: Validates timestamp format and suggests correct HH:mm format
+- **No entries to undo**: Informs when there are no entries to remove
+- **Missing time value**: Ensures `-t` flag has a corresponding time argument
+
+### Common Error Examples
+
+```bash
+# Invalid time format
+2log -t 25:30 "Invalid hour"
+# ❌ Invalid time format: "25:30". Please use HH:mm format (e.g., 14:30)
+
+# Time flag without value
+2log -t "Missing time value"
+# ❌ Option -t/--time requires a time value (e.g., -t 14:30)
+
+# Undo with no entries
+2log -u
+# ❌ No log entries found in today's note. Nothing to undo.
+
+# Unknown option
+2log --invalid "Some message"
+# ❌ Unknown option: --invalid
+# 💡 Use '2log --help' to see usage instructions.
+```
 
 ## Integration with Self Anthropology
 
@@ -225,23 +294,120 @@ This tool is designed to work perfectly with self-anthropology practices as desc
    - Add the header to your existing daily note manually
    - Or let the tool create a new note with the proper structure
 
+5. **"Invalid time format" errors**
+   - Use 24-hour format: `09:30`, `14:15`, `23:45`
+   - Ensure minutes are between 00-59: `14:30` ✅, `14:60` ❌
+   - Single digits are supported: `9:30` works, but `09:30` is preferred
+
+6. **Entries not sorting correctly**
+   - The tool automatically sorts all entries chronologically
+   - If entries appear out of order, check for formatting issues in existing entries
+   - Manual entries should follow the format: `- HH:mm message`
+
+### Advanced Troubleshooting
+
+**Debugging entry parsing:**
+```bash
+# List entries to see current state
+2log -l
+
+# If entries aren't parsing correctly, check the format:
+# ✅ Correct: - 14:30 Meeting notes
+# ❌ Wrong:   -14:30 Meeting notes (missing space)
+# ❌ Wrong:   - 2:30 Meeting notes (should be 02:30)
+```
+
+**Manual file inspection:**
+```bash
+# View the raw markdown file
+cat $HOME/Documents/ThirdTime/Journal/$(date +%Y-%m-%d).md
+
+# Check for invisible characters or formatting issues
+hexdump -C $HOME/Documents/ThirdTime/Journal/$(date +%Y-%m-%d).md | head
+```
+
 ### Development Tips
 
 - Use `npm run dev` for watch mode during development
-- The tool exports functions for use in other TypeScript projects
+- The tool exports functions (`addLogEntry`, `listTodayEntries`, `undoLastEntry`) for use in other TypeScript projects
 - Error types are defined for easy extension of error handling
 - Configuration is centralized in the `DEFAULT_CONFIG` object
+- All log entry operations maintain chronological order automatically
+- The `LogEntry` interface provides type safety for entry manipulation
+
+### Testing New Features
+
+```bash
+# Test custom timestamps
+2log -t 08:00 "Test early morning entry"
+2log -t 23:59 "Test late evening entry"
+2log -t 12:00 "Test noon entry"
+2log -l  # Should show entries in chronological order
+
+# Test undo functionality
+2log "Test entry to remove"
+2log -u  # Should remove the test entry
+2log -l  # Verify removal
+
+# Test edge cases
+2log -t 00:00 "Midnight entry"
+2log -t 23:59 "Almost midnight"
+2log -t 12:00 "Noon exactly"
+```
 
 ## Contributing
 
 This tool is designed to be easily extensible. Some ideas for future enhancements:
 
-- Custom timestamp formats
-- Multiple header support
-- Template customization
-- Integration with different note structures
-- Mood tracking with emoji support
-- Tag-based categorization
+### Planned Features
+- **Multiple header support**: Target different sections (e.g., `## Work`, `## Personal`)
+- **Template customization**: Custom daily note templates
+- **Bulk operations**: Import/export entries, merge days
+- **Rich formatting**: Support for markdown formatting in entries
+- **Tag system**: Categorize entries with hashtags
+- **Search functionality**: Find entries across multiple days
+- **Statistics**: Daily/weekly/monthly entry counts and patterns
+
+### Advanced Ideas
+- **Mood tracking**: Emoji or numeric mood indicators
+- **Time tracking**: Duration-based entries for activities
+- **Goal integration**: Link entries to specific goals or projects
+- **Habit tracking**: Mark recurring activities and track streaks
+- **Integration APIs**: Connect with other productivity tools
+- **Export formats**: Generate reports in various formats (PDF, CSV, etc.)
+- **Calendar integration**: Sync with calendar events
+- **Natural language processing**: Smart categorization and insights
+
+### Code Architecture for Extensions
+
+The codebase is structured to support easy extensions:
+
+```typescript
+// Easy to add new command line options
+interface CommandArgs {
+  message?: string;
+  time?: string;
+  list?: boolean;
+  undo?: boolean;
+  help?: boolean;
+  // Add new options here
+}
+
+// Configuration can be extended
+interface LoggerConfig {
+  journalDir: string;
+  dateFormat?: string;
+  timeFormat?: string;
+  todayHeader?: string;
+  // Add new config options here
+}
+
+// Error types can be expanded
+type LoggerError = 
+  | 'DIRECTORY_NOT_FOUND'
+  | 'HEADER_NOT_FOUND'
+  // Add new error types here
+```
 
 ## License
 
